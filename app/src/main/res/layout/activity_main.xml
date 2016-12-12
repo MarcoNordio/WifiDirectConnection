@@ -23,13 +23,13 @@
             android:id="@+id/listView" />
 
         <Button
-            android:text="SEARCH"
+            android:text="SEARCH as CLIENT"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/button" />
 
         <Button
-            android:text="Button"
+            android:text="SEARCH as SERVER"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:id="@+id/button2" />

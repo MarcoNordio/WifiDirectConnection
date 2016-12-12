@@ -1,0 +1,108 @@
+package com.example.marco.wifidirectconnection;
+
+/**
+ * Created by Marco on 30/11/16.
+ */
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.net.NetworkInfo;
+import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
+import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pManager.Channel;
+import android.util.Log;
+import android.widget.Toast;
+import android.app.Activity;
+
+/**
+ * A BroadcastReceiver that notifies of important wifi p2p events.
+ */
+public class ServerBroadcastReceiver extends BroadcastReceiver {
+
+    private WifiP2pManager manager;
+    private Channel channel;
+    private MainActivity activity;
+
+    /**
+     * @param manager WifiP2pManager system service
+     * @param channel Wifi p2p channel
+     * @param activity activity associated with the receiver
+     */
+    public ServerBroadcastReceiver(WifiP2pManager manager, Channel channel, MainActivity activity) {
+        super();
+        this.manager = manager;
+        this.channel = channel;
+        this.activity = activity;
+    }
+
+
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        String action = intent.getAction();
+        if (WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION.equals(action)) {
+
+            // UI update to indicate wifi p2p status.
+            int state = intent.getIntExtra(WifiP2pManager.EXTRA_WIFI_STATE, -1);
+            /*if (state == WifiP2pManager.WIFI_P2P_STATE_ENABLED) {
+                // Wifi Direct mode is enabled
+                activity.setIsWifiP2pEnabled(true);
+            } else {
+                activity.setIsWifiP2pEnabled(false);
+                activity.resetData();
+
+            }*/
+        } else if (WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION.equals(action)) {   //viene chiamato questo intent quando cambia la lista
+
+            // request available peers from the wifi p2p manager. This is an
+            // asynchronous call and the calling activity is notified with a
+            // callback on PeerListListener.onPeersAvailable() NB!!!!!!!!!!!!!!!!
+            if (manager != null) {
+                manager.requestPeers(channel, activity.DeviceListModel); //oggetto listener creato nel mainActivity
+            }
+        } else if (WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION.equals(action)) {
+
+            if (manager == null) {
+                return;
+            }
+            manager.requestConnectionInfo(channel, new WifiP2pManager.ConnectionInfoListener() {
+                @Override
+                public void onConnectionInfoAvailable(WifiP2pInfo info) {
+                    if(!info.groupFormed){
+                        //TODO gestire numero tentativi
+                        CreateGroup();
+                    }else{
+                        manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+                            @Override
+                            public void onGroupInfoAvailable(WifiP2pGroup group) {
+                                if(group != null ){
+                                    //mListener.setMessage("AP: "+group.getNetworkName());
+                                    //mListener.setMessage("\nPSW: "+group.getPassphrase());
+                                }
+
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+    }
+
+
+    private void CreateGroup() {
+        manager.createGroup(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                Toast.makeText(activity, "Group created", Toast.LENGTH_SHORT).show();
+                activity.NavigateToServerActivity(); //questa chiamata può essere fatta solo dal group owner (server)
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Toast.makeText(activity, "Group NOT created", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+}
